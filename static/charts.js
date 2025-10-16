@@ -1,101 +1,136 @@
- 
 document.addEventListener('DOMContentLoaded', () => {
-    const protocolSelect = document.getElementById('protocol-select');
-    const appSelect = document.getElementById('app-select');
+    const protocolSelector = document.getElementById('protocol-selector');
+    const appTypeSelector = document.getElementById('app-type-selector');
     const spinner = document.getElementById('loading-spinner');
 
-    // Chart.js global configuration
-    Chart.defaults.color = '#c0c0c0';
-    Chart.defaults.borderColor = 'rgba(233, 69, 96, 0.2)';
+    // Define colors for each protocol to keep them consistent
+    const PROTOCOL_COLORS = {
+        reno: { border: 'rgba(24, 119, 242, 1)', background: 'rgba(24, 119, 242, 0.1)' },
+        cubic: { border: 'rgba(52, 168, 83, 1)', background: 'rgba(52, 168, 83, 0.1)' },
+        bbr: { border: 'rgba(234, 67, 53, 1)', background: 'rgba(234, 67, 53, 0.1)' },
+        udp: { border: 'rgba(251, 188, 5, 1)', background: 'rgba(251, 188, 5, 0.1)' }
+    };
 
-    const chartOptions = (title) => ({
+    // --- Chart.js Global Configuration ---
+    Chart.defaults.font.family = "'Roboto', sans-serif";
+    Chart.defaults.plugins.legend.position = 'bottom';
+    Chart.defaults.plugins.tooltip.backgroundColor = '#333';
+    Chart.defaults.plugins.tooltip.titleFont.size = 14;
+    Chart.defaults.plugins.tooltip.bodyFont.size = 12;
+
+    const commonOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            title: { display: false }
-        },
         scales: {
-            x: {
-                grid: { color: 'rgba(192, 192, 192, 0.1)' },
-                ticks: { color: '#c0c0c0' }
-            },
-            y: {
-                grid: { color: 'rgba(192, 192, 192, 0.1)' },
-                ticks: { color: '#c0c0c0' },
-                beginAtZero: true
-            }
+            x: { grid: { display: false } },
+            y: { beginAtZero: true }
         },
-        animation: {
-            duration: 400,
-            easing: 'easeInOutQuad'
-        }
-    });
-    
-    const lineChartConfig = (label, color) => ({
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: label,
-                data: [],
-                borderColor: color,
-                backgroundColor: `${color}33`, // Add alpha for fill
-                fill: true,
-                tension: 0.3
-            }]
+        interaction: {
+            mode: 'index',
+            intersect: false,
         },
-        options: chartOptions(label)
-    });
+    };
 
-    // Initialize charts
-    const latencyChart = new Chart(document.getElementById('latencyChart'), lineChartConfig('Latency', '#e94560'));
-    const jitterChart = new Chart(document.getElementById('jitterChart'), lineChartConfig('Jitter', '#5372f0'));
-    const throughputChart = new Chart(document.getElementById('throughputChart'), lineChartConfig('Throughput', '#34d399'));
-    const packetLossChart = new Chart(document.getElementById('packetLossChart'), lineChartConfig('Packet Loss', '#f59e0b'));
-
-    const charts = [latencyChart, jitterChart, throughputChart, packetLossChart];
+    // --- Initialize Charts ---
+    const latencyChart = new Chart(document.getElementById('latencyChart'), { type: 'line', data: { datasets: [] }, options: commonOptions });
+    const jitterChart = new Chart(document.getElementById('jitterChart'), { type: 'line', data: { datasets: [] }, options: commonOptions });
+    const throughputChart = new Chart(document.getElementById('throughputChart'), { type: 'bar', data: { datasets: [] }, options: commonOptions });
+    const packetLossChart = new Chart(document.getElementById('packetLossChart'), { type: 'line', data: { datasets: [] }, options: commonOptions });
+    const allCharts = [latencyChart, jitterChart, throughputChart, packetLossChart];
 
     async function fetchAndUpdateCharts() {
-        const protocol = protocolSelect.value;
-        const appType = appSelect.value;
+        spinner.style.display = 'flex';
+
+        // 1. Get selected protocols and application type
+        const selectedProtocols = Array.from(protocolSelector.querySelectorAll('input:checked')).map(input => input.value);
+        const selectedAppType = appTypeSelector.querySelector('input:checked').value;
         
-        spinner.style.display = 'block';
-
-        try {
-            const response = await fetch(`/get_metrics?protocol=${protocol}&app_type=${encodeURIComponent(appType)}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        // Update checkbox UI
+        protocolSelector.querySelectorAll('label').forEach(label => {
+            const input = label.querySelector('input');
+            if (input.checked) {
+                label.style.backgroundColor = 'rgba(24, 119, 242, 0.1)';
+                label.style.borderColor = 'rgba(24, 119, 242, 1)';
+            } else {
+                label.style.backgroundColor = 'var(--sidebar-bg)';
+                label.style.borderColor = 'var(--border-color)';
             }
-            const data = await response.json();
+        });
 
-            // Update chart data
-            latencyChart.data.labels = data.labels;
-            latencyChart.data.datasets[0].data = data.latency;
-            
-            jitterChart.data.labels = data.labels;
-            jitterChart.data.datasets[0].data = data.jitter;
 
-            throughputChart.data.labels = data.labels;
-            throughputChart.data.datasets[0].data = data.throughput;
-
-            packetLossChart.data.labels = data.labels;
-            packetLossChart.data.datasets[0].data = data.packet_loss;
-
-            // Update all charts
-            charts.forEach(chart => chart.update());
-
-        } catch (error) {
-            console.error("Failed to fetch metrics:", error);
-        } finally {
+        if (selectedProtocols.length === 0) {
+            allCharts.forEach(chart => {
+                chart.data.labels = [];
+                chart.data.datasets = [];
+                chart.update();
+            });
             spinner.style.display = 'none';
+            return;
         }
+
+        // 2. Fetch data for all selected protocols concurrently
+        const promises = selectedProtocols.map(protocol =>
+            fetch(`/get_metrics?protocol=${protocol}&app_type=${encodeURIComponent(selectedAppType)}`).then(res => res.json())
+        );
+
+        const results = await Promise.all(promises);
+
+        // 3. Clear existing datasets
+        allCharts.forEach(chart => chart.data.datasets = []);
+        const labels = results[0]?.labels || []; // Use labels from the first result
+
+        // 4. Populate new datasets for each chart
+        results.forEach((data, index) => {
+            const protocol = selectedProtocols[index];
+            const color = PROTOCOL_COLORS[protocol] || { border: '#ccc', background: '#ccc' };
+            
+            latencyChart.data.labels = labels;
+            latencyChart.data.datasets.push({
+                label: protocol.toUpperCase(),
+                data: data.latency,
+                borderColor: color.border,
+                backgroundColor: color.background,
+                tension: 0.3,
+                fill: true
+            });
+
+            jitterChart.data.labels = labels;
+            jitterChart.data.datasets.push({
+                label: protocol.toUpperCase(),
+                data: data.jitter,
+                borderColor: color.border,
+                backgroundColor: color.background,
+                tension: 0.3,
+                fill: true
+            });
+            
+            throughputChart.data.labels = labels;
+            throughputChart.data.datasets.push({
+                label: protocol.toUpperCase(),
+                data: data.throughput,
+                backgroundColor: color.border, // For bar charts, background color is the main color
+            });
+
+            packetLossChart.data.labels = labels;
+            packetLossChart.data.datasets.push({
+                label: protocol.toUpperCase(),
+                data: data.packet_loss,
+                borderColor: color.border,
+                backgroundColor: color.background,
+                tension: 0.3,
+                fill: true
+            });
+        });
+
+        // 5. Update all charts
+        allCharts.forEach(chart => chart.update());
+        spinner.style.display = 'none';
     }
 
-    // Event listeners for dropdowns
-    protocolSelect.addEventListener('change', fetchAndUpdateCharts);
-    appSelect.addEventListener('change', fetchAndUpdateCharts);
+    // Attach event listeners
+    protocolSelector.addEventListener('change', fetchAndUpdateCharts);
+    appTypeSelector.addEventListener('change', fetchAndUpdateCharts);
 
-    // Initial data load
+    // Initial load
     fetchAndUpdateCharts();
 });
