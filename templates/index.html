@@ -1,0 +1,64 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QoS Network Performance Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h1>QoS Dashboard</h1>
+            <p>A simulator for visualizing network performance with simulated SDN-based QoS.</p>
+            
+            <div class="controls">
+                <label for="protocol-select">Congestion Control Algorithm</label>
+                <select id="protocol-select">
+                    <option value="bbr" selected>Google BBR</option>
+                    <option value="cubic">TCP Cubic</option>
+                    <option value="reno">TCP Reno</option>
+                    <option value="udp">UDP</option>
+                </select>
+                
+                <label for="app-select">Application Type</label>
+                <select id="app-select">
+                    <option value="Video Streaming">Video Streaming</option>
+                    <option value="Online Gaming">Online Gaming</option>
+                    <option value="File Transfer">File Transfer</option>
+                </select>
+            </div>
+            
+            <div class="spinner-container">
+                <div class="loading-spinner" id="loading-spinner" style="display: none;"></div>
+            </div>
+            
+            <footer>
+                <p>SDN Controller logs appear in the terminal running `app.py`.</p>
+            </footer>
+        </aside>
+
+        <main class="dashboard">
+            <div class="chart-container">
+                <h2>Latency (ms)</h2>
+                <canvas id="latencyChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>Jitter (ms)</h2>
+                <canvas id="jitterChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>Throughput (Mbps)</h2>
+                <canvas id="throughputChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>Packet Loss (%)</h2>
+                <canvas id="packetLossChart"></canvas>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='charts.js') }}"></script>
+</body>
+</html>

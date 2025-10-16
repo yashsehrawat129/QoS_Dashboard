@@ -1,0 +1,122 @@
+ 
+:root {
+    --bg-color: #1a1a2e;
+    --sidebar-bg: #16213e;
+    --chart-bg: #0f3460;
+    --text-color: #e94560;
+    --label-color: #c0c0c0;
+    --border-color: #e94560;
+    --accent-blue: #5372f0;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--label-color);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background-color: var(--sidebar-bg);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid var(--border-color);
+}
+
+.sidebar h1 {
+    color: var(--text-color);
+    margin-top: 0;
+    font-size: 1.8rem;
+}
+
+.sidebar p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.controls label {
+    display: block;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--label-color);
+}
+
+.controls select {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: var(--chart-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.sidebar footer {
+    margin-top: auto;
+    font-size: 0.8rem;
+    color: var(--label-color);
+    opacity: 0.7;
+}
+
+/* Dashboard Grid */
+.dashboard {
+    flex-grow: 1;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 2rem;
+    overflow-y: auto;
+}
+
+.chart-container {
+    background-color: var(--sidebar-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--chart-bg);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.chart-container h2 {
+    margin-top: 0;
+    text-align: center;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+/* Loading Spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 0;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--chart-bg);
+    border-top: 4px solid var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
